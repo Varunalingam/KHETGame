@@ -14,6 +14,7 @@ import android.graphics.Paint;
 import android.graphics.Path;
 import android.graphics.Point;
 import android.graphics.Rect;
+import android.media.MediaPlayer;
 import android.text.TextPaint;
 import android.util.AttributeSet;
 import android.util.Log;
@@ -272,6 +273,8 @@ public class KHETBoard extends View {
             switch (event.getAction())
             {
                 case MotionEvent.ACTION_DOWN:
+                    MainActivity.M = MediaPlayer.create(getContext(),R.raw.click);
+                    MainActivity.M.start();
                     Position Local = SearchPositions((int) event.getX(),(int) event.getY());
 
                     if (CurrentPiece == null && Local != null)
@@ -623,6 +626,8 @@ public class KHETBoard extends View {
 
     void DestroyObject(PlayerPieces S)
     {
+        MainActivity.M = MediaPlayer.create(getContext(),R.raw.destroy);
+        MainActivity.M.start();
         if (S.type == 1)
         {
             if (CurrentPlayer == 1)
