@@ -9,17 +9,21 @@ import android.content.Intent;
 import android.media.MediaPlayer;
 import android.os.Bundle;
 import android.util.Log;
+import android.widget.TextView;
 
 public class MainActivity extends AppCompatActivity {
 
     KHETBoard Board;
     public static MediaPlayer M;
+    TextView Message;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         Board = findViewById(R.id.board);
+        Message = findViewById(R.id.message);
+        Board.Message = Message;
         Board.GL = new GameOverListener() {
             @Override
             public void OnGameOver(int Winner) {
