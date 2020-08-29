@@ -25,6 +25,7 @@ import android.widget.Toast;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
 import java.util.jar.Attributes;
 
 public class KHETBoard extends View {
@@ -107,7 +108,8 @@ public class KHETBoard extends View {
         TextPaint.setColor(BoardColor);
         TextPaint.setTextSize(30 * getResources().getDisplayMetrics().scaledDensity);
 
-        LoadConfig(1);
+        Random A = new Random();
+        LoadConfig(Math.abs(A.nextInt()%3));
         History.add(new BoardData(P1,P2));
 
     }
@@ -129,11 +131,61 @@ public class KHETBoard extends View {
             P1.add(new PlayerPieces(4,7,0,0,1));
             P1.add(new PlayerPieces(4, 7,3,0,1));
             P1.add(new PlayerPieces(4,7,4,3,1));
-            P1.add(new PlayerPieces(2,4,3,0,1));
+            P1.add(new PlayerPieces(2,4,3,1,1));
             P1.add(new PlayerPieces(2,5, 3,0,1));
             P1.add(new PlayerPieces(3, 4,0,0,2));
             P1.add(new PlayerPieces(3,6,0,0,2));
             P1.add(new PlayerPieces(1,5,0,0,1));
+
+            for (int j = 0; j < P1.size();j++)
+            {
+                PlayerPieces  A = new PlayerPieces(P1.get(j).type,P1.get(j).lx,P1.get(j).ly,P1.get(j).dir,P1.get(j).State);
+                A.lx = gridx - 1 - A.lx;
+                A.ly = gridy - 1 - A.ly;
+                A.rotate(2);
+                P2.add(A);
+            }
+        }
+        else if (i == 2)
+        {
+            P1.add(new PlayerPieces(5,0,0,0,1));
+            P1.add(new PlayerPieces(4, 0,3,3,1));
+            P1.add(new PlayerPieces( 4,0,4,0,1));
+            P1.add(new PlayerPieces(3, 4,0,0,2));
+            P1.add(new PlayerPieces(3,6,0,0,2));
+            P1.add(new PlayerPieces(1,5,0,0,1));
+            P1.add(new PlayerPieces(2,7,0,0,1));
+            P1.add(new PlayerPieces(2,5, 3,0,1));
+            P1.add(new PlayerPieces(4, 8,3,0,1));
+            P1.add(new PlayerPieces( 4,8,4,3,1));
+            P1.add(new PlayerPieces(4, 6,2,3,1));
+            P1.add(new PlayerPieces( 4,6,5,0,1));
+            P1.add(new PlayerPieces( 4,5,4,2,1));
+
+            for (int j = 0; j < P1.size();j++)
+            {
+                PlayerPieces  A = new PlayerPieces(P1.get(j).type,P1.get(j).lx,P1.get(j).ly,P1.get(j).dir,P1.get(j).State);
+                A.lx = gridx - 1 - A.lx;
+                A.ly = gridy - 1 - A.ly;
+                A.rotate(2);
+                P2.add(A);
+            }
+        }
+        else
+        {
+            P1.add(new PlayerPieces(5,0,0,0,1));
+            P1.add(new PlayerPieces(4, 0,2,3,1));
+            P1.add(new PlayerPieces( 4,0,3,0,1));
+            P1.add(new PlayerPieces(2,2,3,1,1));
+            P1.add(new PlayerPieces(4,3,4,2,1));
+            P1.add(new PlayerPieces(4,4,0,1,1));
+            P1.add(new PlayerPieces(4,4,2,1,1));
+            P1.add(new PlayerPieces(3,5,0,0,2));
+            P1.add(new PlayerPieces(3,5,2,0,2));
+            P1.add(new PlayerPieces(1,5,1,0,1));
+            P1.add(new PlayerPieces(4,5,4,0,1));
+            P1.add(new PlayerPieces(4,6,0,0,1));
+            P1.add(new PlayerPieces(2,6,2,0,1));
 
             for (int j = 0; j < P1.size();j++)
             {
@@ -434,7 +486,6 @@ public class KHETBoard extends View {
             public void onAnimationUpdate(ValueAnimator valueAnimator) {
                 xoff = (Local.grid.centerX() - Positions.get(CurrentPiece.lx).get(CurrentPiece.ly).grid.centerX()) * (int)valueAnimator.getAnimatedValue()/300;
                 yoff = (Local.grid.centerY() - Positions.get(CurrentPiece.lx).get(CurrentPiece.ly).grid.centerY()) * (int)valueAnimator.getAnimatedValue()/300;
-                Log.d("Hello",xoff + " " + yoff);
                 invalidate();
             }
         });
@@ -495,7 +546,6 @@ public class KHETBoard extends View {
             public void onAnimationUpdate(ValueAnimator valueAnimator) {
                 xoff = (Local.grid.centerX() - Positions.get(CurrentPiece.lx).get(CurrentPiece.ly).grid.centerX()) * (int)valueAnimator.getAnimatedValue()/300;
                 yoff = (Local.grid.centerY() - Positions.get(CurrentPiece.lx).get(CurrentPiece.ly).grid.centerY()) * (int)valueAnimator.getAnimatedValue()/300;
-                Log.d("Hello",xoff + " " + yoff);
                 invalidate();
             }
         });
