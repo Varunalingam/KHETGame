@@ -1,6 +1,8 @@
 package com.vssve.khet;
 
+import android.app.ActionBar;
 import android.content.Context;
+import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
@@ -17,12 +19,16 @@ import java.util.jar.Attributes;
 
 public class KHETBoard extends View {
 
+    int CurrentPlayer = 1;
+
     int gridx = 10;
     int gridy = 8;
 
     private int Thickness, CenterConstant;
 
     List<PlayerPieces> P1, P2;
+
+    PlayerPieces CurrentPiece;
 
     int padding;
 
@@ -126,16 +132,27 @@ public class KHETBoard extends View {
 
         if (Selected != null)
         {
-            canvas.drawRect(Selected.grid,SelectedPaint);
+            if (CurrentPiece.type != 5)
+            for (int i = -1; i < 2 ; i++)
+            {
+                if (i + Selected.lx >= 0 && i + Selected.lx < gridx)
+                    for (int j = -1;j < 2; j++)
+                    {
+                        if (j + Selected.ly >= 0 && j + Selected.ly < gridy && !(j==0 && i == 0))
+                        {
+                            canvas.drawRect(Positions.get(i+Selected.lx).get(j + Selected.ly).grid,SelectedPaint);
+                        }
+                    }
+            }
         }
 
         for(int i = 0; i < P1.size();i++)
         {
-            canvas.drawRect(Positions.get(P1.get(i).lx).get(P1.get(i).ly).grid,SelectedPaint);
+            canvas.drawBitmap(BitmapFactory.decodeResource(getResources(),getResources().getIdentifier("p" + 1 + "pp" + P1.get(i).type, "drawable",getContext().getPackageName())),null, Positions.get(P1.get(i).lx).get(P1.get(i).ly).grid,null);
         }
         for(int i = 0; i < P2.size();i++)
         {
-            canvas.drawRect(Positions.get(P2.get(i).lx).get(P2.get(i).ly).grid,SelectedPaint);
+            canvas.drawBitmap(BitmapFactory.decodeResource(getResources(),getResources().getIdentifier("p" + 2 + "pp" + P2.get(i).type, "drawable",getContext().getPackageName())),null, Positions.get(P2.get(i).lx).get(P2.get(i).ly).grid,null);
         }
 
     }
@@ -146,27 +163,149 @@ public class KHETBoard extends View {
         {
             case MotionEvent.ACTION_DOWN:
                 Position Local = SearchPositions((int) event.getX(),(int) event.getY());
-                Selected = Local != null?Local:Selected;
+
+                if (CurrentPiece == null && Local != null)
+                {
+                    PlayerPieces Cp = isPiece(Local);
+                    if (Cp != null)
+                    {
+                        Selected = Local;
+                        CurrentPiece = Cp;
+                    }
+                    else
+                    {
+                        Selected = null;
+                    }
+                }
+                else if (Local != null)
+                {
+                    PlayerPieces Cp = isPiece(Local);
+                    if (Cp != null && Cp.isMatches(CurrentPiece))
+                    {
+                        if (Cp.type == 3)
+                        {
+                            //ObliqueFun
+                        }
+                    }
+                    else if (Cp != null )
+                    {
+                        Selected = Local;
+                        CurrentPiece = Cp;
+                    }
+                    else if (isadjacent(Local))
+                    {
+                        //Move
+                        MovePlayer(Local);
+
+                    }
+                    else
+                    {
+                        Selected = null;
+                    }
+                }
+                else
+                {
+                    Selected = null;
+                }
                 invalidate();
                 return true;
 
             case MotionEvent.ACTION_UP:
-                Selected = null;
+                //Selected = null;
                 invalidate();
 
         }
         return super.onTouchEvent(event);
     }
 
-    Position SearchPositions (int x, int y)
+    void MovePlayer(Position Local)
+    {
+        if (CurrentPlayer == 1)
+        {
+            int index = P1.indexOf(CurrentPiece);
+            CurrentPiece.lx = Local.lx;
+            CurrentPiece.ly = Local.ly;
+            P1.set(index,CurrentPiece);
+        }
+        else
+        {
+            int index = P2.indexOf(CurrentPiece);
+            CurrentPiece.lx = Local.lx;
+            CurrentPiece.ly = Local.ly;
+            P2.set(index,CurrentPiece);
+        }
+        ChangePlayer();
+    }
+
+    void ChangePlayer()
+    {
+        CurrentPlayer += 1;
+        if (CurrentPlayer > 2)
+        {
+            CurrentPlayer = 1;
+        }
+
+        //Laser!!
+
+
+        CurrentPiece = null;
+        Selected = null;
+        invalidate();
+    }
+
+    boolean isadjacent(Position Local)
+    {
+        if (CurrentPiece.type != 5)
+        for (int i = -1; i < 2 ; i++)
+        {
+            if (i + Selected.lx >= 0 && i + Selected.lx < gridx)
+                for (int j = -1;j < 2; j++)
+                {
+                    if (j + Selected.ly >= 0 && j + Selected.ly < gridy && !(j==0 && i == 0))
+                    {
+                        if (Local.ly == j + Selected.ly && Local.lx == i + Selected.lx)
+                            return true;
+                    }
+                }
+        }
+        return false;
+    }
+
+    Position SearchPositions (int fx, int fy)
     {
         for (int i = 0; i < gridx; i++)
         {
             for (int j = 0; j < gridy; j++)
             {
-                if (Positions.get(i).get(j).grid.contains(x,y))
+                if (Positions.get(i).get(j).grid.contains(fx,fy))
                 {
                     return Positions.get(i).get(j);
+                }
+            }
+        }
+
+        return null;
+    }
+
+    PlayerPieces isPiece(Position p)
+    {
+        if (CurrentPlayer == 1)
+        {
+            for (int i = 0 ; i < P1.size(); i++)
+            {
+                if (p.lx == P1.get(i).lx && p.ly == P1.get(i).ly)
+                {
+                    return P1.get(i);
+                }
+            }
+        }
+        else
+        {
+            for (int i = 0 ; i < P2.size(); i++)
+            {
+                if (p.lx == P2.get(i).lx && p.ly == P2.get(i).ly)
+                {
+                    return P2.get(i);
                 }
             }
         }
@@ -182,9 +321,11 @@ class PlayerPieces
     // 1 = Paraoah 2 = Djed 3 = Obelisk 4 = Pyramid 5 = Laser
     int lx;
     int ly;
+
     int dir;
+
     int State;
-    // 0 = Destroyed 1 = Active
+    // 0 = Destroyed 1 = Active 2 = Stacked
 
     public PlayerPieces(int type, int lx, int ly, int dir,int State) {
         this.type = type;
@@ -192,6 +333,26 @@ class PlayerPieces
         this.ly = ly;
         this.dir = dir;
         this.State = State;
+    }
+
+    void rotate(int amount)
+    {
+        dir += amount;
+
+        if (dir > 3)
+        {
+            dir -= 4;
+        }
+
+        if (dir < 0)
+        {
+            dir += 4;
+        }
+    }
+
+    boolean isMatches(PlayerPieces a)
+    {
+        return a.dir == dir && a.ly == ly && a.lx == lx && a.State == State && a.type==type;
     }
 }
 
