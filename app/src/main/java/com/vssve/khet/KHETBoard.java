@@ -1,5 +1,7 @@
 package com.vssve.khet;
 
+import android.animation.Animator;
+import android.animation.AnimatorListenerAdapter;
 import android.animation.ValueAnimator;
 import android.app.ActionBar;
 import android.content.Context;
@@ -12,6 +14,7 @@ import android.graphics.Paint;
 import android.graphics.Path;
 import android.graphics.Point;
 import android.graphics.Rect;
+import android.text.TextPaint;
 import android.util.AttributeSet;
 import android.util.Log;
 import android.view.MotionEvent;
@@ -31,6 +34,7 @@ public class KHETBoard extends View {
 
     private int Thickness, CenterConstant;
 
+    ArrayList<BoardData> History;
 
     List<PlayerPieces> P1, P2;
 
@@ -55,10 +59,19 @@ public class KHETBoard extends View {
 
     int CaseAction = 0;
 
+    boolean animating;
+
+    int rotaoff;
+    int xoff;
+    int yoff;
+
+    Paint TextPaint;
+
 
     public KHETBoard(Context context, AttributeSet attr) {
         super(context,attr);
 
+        History = new ArrayList<>();
 
         BoardColor = Color.GRAY;
         SelectedColor = Color.YELLOW;
@@ -84,7 +97,12 @@ public class KHETBoard extends View {
 
         LaserPath = new Path();
 
+        TextPaint = new TextPaint();
+        TextPaint.setColor(BoardColor);
+        TextPaint.setTextSize(30 * getResources().getDisplayMetrics().scaledDensity);
+
         LoadConfig(1);
+        History.add(new BoardData(P1,P2));
 
     }
 
@@ -147,6 +165,12 @@ public class KHETBoard extends View {
             PlusR = new Position(new Rect( padding + ((gridx+1)/2) * (Thickness + padding), CenterConstant + padding + (gridy + 2) * (Thickness + padding) ,  ((gridx +1)/2) * (Thickness + padding) + Thickness, CenterConstant + (gridy + 2) * (Thickness + padding) + Thickness),(gridx + 1)/2,gridy + 2);
         }
 
+        setBackgroundColor(Color.BLACK);
+
+        TextPaint.setColor(CurrentPlayer == 1?Color.WHITE:Color.RED);
+
+        canvas.drawText( (CurrentPlayer == 1? "Silver" : "Red") + "'s Turn",(getWidth() - TextPaint.measureText((CurrentPlayer == 1? "Silver" : "Red") + "'s Turn"))/2, TextPaint.descent() - TextPaint.ascent() ,TextPaint);
+
         for (int i = 0; i < gridx;i++)
         {
             for (int j  = 0; j < gridy; j++)
@@ -173,27 +197,56 @@ public class KHETBoard extends View {
 
         for(int i = 0; i < P1.size();i++)
         {
-            Bitmap A = BitmapFactory.decodeResource(getResources(),getResources().getIdentifier("p" + 1 + "pp" + P1.get(i).type, "drawable",getContext().getPackageName()));
-            if (P1.get(i).type == 3 && P1.get(i).State == 2)
-            {
-                A = BitmapFactory.decodeResource(getResources(),getResources().getIdentifier("p" + 1 + "pp" + 6, "drawable",getContext().getPackageName()));
+            if (!(animating && CurrentPiece == P1.get(i))) {
+                Bitmap A = BitmapFactory.decodeResource(getResources(), getResources().getIdentifier("p" + 1 + "pp" + P1.get(i).type, "drawable", getContext().getPackageName()));
+                if (P1.get(i).type == 3 && P1.get(i).State == 2) {
+                    A = BitmapFactory.decodeResource(getResources(), getResources().getIdentifier("p" + 1 + "pp" + 6, "drawable", getContext().getPackageName()));
+                }
+                Matrix s = new Matrix();
+                s.setRotate(90 * P1.get(i).dir);
+                A = Bitmap.createBitmap(A, 0, 0, A.getWidth(), A.getHeight(), s, true);
+                canvas.drawBitmap(A, null, Positions.get(P1.get(i).lx).get(P1.get(i).ly).grid, null);
             }
-            Matrix s = new Matrix();
-            s.setRotate(90 * P1.get(i).dir);
-            A = Bitmap.createBitmap(A,0,0,A.getWidth(),A.getHeight(),s,true);
-            canvas.drawBitmap(A,null, Positions.get(P1.get(i).lx).get(P1.get(i).ly).grid,null);
         }
         for(int i = 0; i < P2.size();i++)
         {
-            Bitmap A = BitmapFactory.decodeResource(getResources(),getResources().getIdentifier("p" + 2 + "pp" + P2.get(i).type, "drawable",getContext().getPackageName()));
-            if (P2.get(i).type == 3 && P2.get(i).State == 2)
-            {
-                A = BitmapFactory.decodeResource(getResources(),getResources().getIdentifier("p" + 2 + "pp" + 6, "drawable",getContext().getPackageName()));
+            if (!(animating && CurrentPiece == P2.get(i))) {
+                Bitmap A = BitmapFactory.decodeResource(getResources(), getResources().getIdentifier("p" + 2 + "pp" + P2.get(i).type, "drawable", getContext().getPackageName()));
+                if (P2.get(i).type == 3 && P2.get(i).State == 2) {
+                    A = BitmapFactory.decodeResource(getResources(), getResources().getIdentifier("p" + 2 + "pp" + 6, "drawable", getContext().getPackageName()));
+                }
+                Matrix s = new Matrix();
+                s.setRotate(90 * P2.get(i).dir);
+                A = Bitmap.createBitmap(A, 0, 0, A.getWidth(), A.getHeight(), s, true);
+                canvas.drawBitmap(A, null, Positions.get(P2.get(i).lx).get(P2.get(i).ly).grid, null);
             }
-            Matrix s = new Matrix();
-            s.setRotate(90 * P2.get(i).dir);
-            A = Bitmap.createBitmap(A,0,0,A.getWidth(),A.getHeight(),s,true);
-            canvas.drawBitmap(A,null, Positions.get(P2.get(i).lx).get(P2.get(i).ly).grid,null);
+        }
+
+        if (animating)
+        {
+            if (P1.contains(CurrentPiece)){
+                Bitmap A = BitmapFactory.decodeResource(getResources(), getResources().getIdentifier("p" + 1+ "pp" + CurrentPiece.type, "drawable", getContext().getPackageName()));
+                if (CurrentPiece.type == 3 && CurrentPiece.State == 2) {
+                    A = BitmapFactory.decodeResource(getResources(), getResources().getIdentifier("p" + 1 + "pp" + 6, "drawable", getContext().getPackageName()));
+                }
+                Matrix s = new Matrix();
+                s.setRotate((90 * CurrentPiece.dir )+ rotaoff);
+                A = Bitmap.createBitmap(A, 0, 0, A.getWidth(), A.getHeight(), s, true);
+                Rect r = new Rect(Positions.get(CurrentPiece.lx).get(CurrentPiece.ly).grid.left + xoff,Positions.get(CurrentPiece.lx).get(CurrentPiece.ly).grid.top + yoff,Positions.get(CurrentPiece.lx).get(CurrentPiece.ly).grid.right + xoff,Positions.get(CurrentPiece.lx).get(CurrentPiece.ly).grid.bottom + yoff);
+                canvas.drawBitmap(A,null,r,null);
+            }
+            else
+            {
+                Bitmap A = BitmapFactory.decodeResource(getResources(), getResources().getIdentifier("p" + 2 + "pp" + CurrentPiece.type, "drawable", getContext().getPackageName()));
+                if (CurrentPiece.type == 3 && CurrentPiece.State == 2) {
+                    A = BitmapFactory.decodeResource(getResources(), getResources().getIdentifier("p" + 2 + "pp" + 6, "drawable", getContext().getPackageName()));
+                }
+                Matrix s = new Matrix();
+                s.setRotate((90 * CurrentPiece.dir )+ rotaoff);
+                A = Bitmap.createBitmap(A, 0, 0, A.getWidth(), A.getHeight(), s, true);
+                Rect r = new Rect(Positions.get(CurrentPiece.lx).get(CurrentPiece.ly).grid.left + xoff,Positions.get(CurrentPiece.lx).get(CurrentPiece.ly).grid.top + yoff,Positions.get(CurrentPiece.lx).get(CurrentPiece.ly).grid.right + xoff,Positions.get(CurrentPiece.lx).get(CurrentPiece.ly).grid.bottom + yoff);
+                canvas.drawBitmap(A,null,r,null);
+            }
         }
 
         if (CurrentPiece != null && CurrentPiece.type != 3) {
@@ -202,7 +255,7 @@ public class KHETBoard extends View {
         }
 
         canvas.drawPath(LaserPath,LaserPaint);
-        if (Selected != null)
+        if (Selected != null && !animating)
         {
             canvas.drawCircle(Selected.grid.centerX(),Selected.grid.centerY(),Thickness/5,SelectedPaint);
         }
@@ -211,137 +264,249 @@ public class KHETBoard extends View {
 
     @Override
     public boolean onTouchEvent(MotionEvent event) {
-        switch (event.getAction())
+
+        if (LaserAnim==null)
         {
-            case MotionEvent.ACTION_DOWN:
-                Position Local = SearchPositions((int) event.getX(),(int) event.getY());
+            switch (event.getAction())
+            {
+                case MotionEvent.ACTION_DOWN:
+                    Position Local = SearchPositions((int) event.getX(),(int) event.getY());
 
-                if (CurrentPiece == null && Local != null)
-                {
-                    PlayerPieces Cp = isPiece(Local);
-                    if (Cp != null)
+                    if (CurrentPiece == null && Local != null)
                     {
-                        Selected = Local;
-                        CurrentPiece = Cp;
-                        if (Cp.type == 3)
+                        PlayerPieces Cp = isPiece(Local);
+                        if (Cp != null)
                         {
-                            Toast.makeText(getContext(),"Move as " + (oblayer == 1 ? "Unstacked" : "Stacked")+ " Piece",Toast.LENGTH_SHORT).show();
-                        }
-                    }
-                    else
-                    {
-                        Selected = null;
-                        oblayer = 0;
-                    }
-                }
-                else if (Local != null)
-                {
-                    PlayerPieces Cp = isPiece(Local);
-                    if (Cp != null && Cp.isMatches(CurrentPiece))
-                    {
-                        if (Cp.type == 3 && Cp.State == 2)
-                        {
-                            //ObliqueLayerChange
-                            oblayer +=1;
-                            if (oblayer > 1)
-                            {
-                                oblayer = 0;
-                            }
-
-                            Toast.makeText(getContext(),"Move as " + (oblayer == 1 ? "Unstacked" : "Stacked")+ " Piece",Toast.LENGTH_SHORT).show();
-                        }
-                    }
-                    else if (Cp != null )
-                    {
-                        if (CurrentPiece.type == 3 && CurrentPiece.State != 2 && Cp.type == 3 && Cp.State != 2)
-                        {
-                            //ObliqueMove
-                            MoveObPlayer(Local,Cp);
-                        }
-                        else {
                             Selected = Local;
                             CurrentPiece = Cp;
-                            oblayer = 0;
-                            if (Cp.type == 3)
+                            if (Cp.type == 3 && Cp.State == 2)
                             {
                                 Toast.makeText(getContext(),"Move as " + (oblayer == 1 ? "Unstacked" : "Stacked")+ " Piece",Toast.LENGTH_SHORT).show();
                             }
                         }
+                        else
+                        {
+                            Selected = null;
+                            oblayer = 0;
+                        }
                     }
-                    else if (isadjacent(Local))
+                    else if (Local != null)
                     {
-                        //Move
-                        MovePlayer(Local);
+                        PlayerPieces Cp = isPiece(Local);
+                        if (Cp != null && Cp.isMatches(CurrentPiece))
+                        {
+                            if (Cp.type == 3 && Cp.State == 2)
+                            {
+                                //ObliqueLayerChange
+                                oblayer +=1;
+                                if (oblayer > 1)
+                                {
+                                    oblayer = 0;
+                                }
+
+                                Toast.makeText(getContext(),"Move as " + (oblayer == 1 ? "Unstacked" : "Stacked")+ " Piece",Toast.LENGTH_SHORT).show();
+                            }
+                        }
+                        else if (Cp != null && isCP(Cp))
+                        {
+                            if (CurrentPiece.type == 3 && CurrentPiece.State != 2 && Cp.type == 3 && Cp.State != 2)
+                            {
+                                //ObliqueMove
+                                MoveObPlayer(Local,Cp);
+                            }
+                            else {
+                                Selected = Local;
+                                CurrentPiece = Cp;
+                                oblayer = 0;
+                                if (Cp.type == 3 && Cp.State == 2)
+                                {
+                                    Toast.makeText(getContext(),"Move as " + (oblayer == 1 ? "Unstacked" : "Stacked")+ " Piece",Toast.LENGTH_SHORT).show();
+                                }
+                            }
+                        }
+                        else if (isadjacent(Local) && Cp == null)
+                        {
+                            //Move
+                            MovePlayer(Local);
+                        }
+                        else
+                        {
+                            Selected = null;
+                            CurrentPiece = null;
+                            oblayer = 0;
+                        }
                     }
                     else
                     {
-                        Selected = null;
-                        CurrentPiece = null;
-                        oblayer = 0;
+                        if (MinusR.grid.contains((int)event.getX(),(int)event.getY()) && CurrentPiece != null && CurrentPiece.type != 3)
+                        {
+                            RotatePlayer(-1);
+                        }
+                        else if (PlusR.grid.contains((int)event.getX(),(int)event.getY()) && CurrentPiece != null && CurrentPiece.type != 3)
+                        {
+                            RotatePlayer(+1);
+                        }
                     }
-                }
-                else
-                {
-                    if (MinusR.grid.contains((int)event.getX(),(int)event.getY()) && CurrentPiece != null && CurrentPiece.type != 3)
-                    {
-                        RotatePlayer(-1);
-                    }
-                    else if (PlusR.grid.contains((int)event.getX(),(int)event.getY()) && CurrentPiece != null && CurrentPiece.type != 3)
-                    {
-                        RotatePlayer(+1);
-                    }
-                }
-                invalidate();
-                return true;
-            case MotionEvent.ACTION_UP:
-                //Selected = null;
-                invalidate();
+                    invalidate();
+                    return true;
+                case MotionEvent.ACTION_UP:
+                    //Selected = null;
+                    invalidate();
 
+            }
         }
         return super.onTouchEvent(event);
     }
 
-    void RotatePlayer(int amount)
+    boolean isCP(PlayerPieces Cp)
     {
         if (CurrentPlayer == 1)
         {
-            int index = P1.indexOf(CurrentPiece);
-            CurrentPiece.rotate(amount);
-            P1.set(index,CurrentPiece);
+            return P1.contains(Cp);
         }
         else
         {
-            int index = P2.indexOf(CurrentPiece);
-            CurrentPiece.rotate(amount);
-            P2.set(index,CurrentPiece);
+            return P2.contains(Cp);
         }
-        ChangePlayer();
     }
 
-    void MoveObPlayer(Position Local,PlayerPieces Cp)
+    void RotatePlayer(final int amount)
     {
-        if (CurrentPlayer == 1)
-        {
-            int index = P1.indexOf(CurrentPiece);
-            CurrentPiece.lx = Local.lx;
-            CurrentPiece.ly = Local.ly;
-            CurrentPiece.State = 2;
-            P1.set(index,CurrentPiece);
-            P1.remove(Cp);
-        }
-        else
-        {
-            int index = P2.indexOf(CurrentPiece);
-            CurrentPiece.lx = Local.lx;
-            CurrentPiece.ly = Local.ly;
-            CurrentPiece.State = 2;
-            P2.set(index,CurrentPiece);
-            P2.remove(Cp);
-        }
-        ChangePlayer();
+        LaserAnim = ValueAnimator.ofInt(0,amount*90);
+        LaserAnim.setDuration(300);
+        xoff = 0;
+        yoff = 0;
+        animating = true;
+        LaserAnim.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
+            @Override
+            public void onAnimationUpdate(ValueAnimator valueAnimator) {
+                rotaoff = (int) valueAnimator.getAnimatedValue();
+                invalidate();
+            }
+        });
+        LaserAnim.addListener(new AnimatorListenerAdapter() {
+            @Override
+            public void onAnimationEnd(Animator animation) {
+                animating = false;
+                super.onAnimationEnd(animation);
+                if (CurrentPlayer == 1)
+                {
+                    int index = P1.indexOf(CurrentPiece);
+                    CurrentPiece.rotate(amount);
+                    P1.set(index,CurrentPiece);
+                }
+                else
+                {
+                    int index = P2.indexOf(CurrentPiece);
+                    CurrentPiece.rotate(amount);
+                    P2.set(index,CurrentPiece);
+                }
+                ChangePlayer();
+            }
+        });
+        LaserAnim.start();
     }
 
-    void MovePlayer(Position Local)
+    void MoveObPlayer(final Position Local, final PlayerPieces Cp)
+    {
+        LaserAnim = ValueAnimator.ofInt(0,300);
+        LaserAnim.setDuration(300);
+        rotaoff = 0;
+        animating = true;
+        LaserAnim.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
+            @Override
+            public void onAnimationUpdate(ValueAnimator valueAnimator) {
+                xoff = (Local.grid.centerX() - Positions.get(CurrentPiece.lx).get(CurrentPiece.ly).grid.centerX()) * (int)valueAnimator.getAnimatedValue()/300;
+                yoff = (Local.grid.centerY() - Positions.get(CurrentPiece.lx).get(CurrentPiece.ly).grid.centerY()) * (int)valueAnimator.getAnimatedValue()/300;
+                Log.d("Hello",xoff + " " + yoff);
+                invalidate();
+            }
+        });
+
+        LaserAnim.addListener(new AnimatorListenerAdapter() {
+            @Override
+            public void onAnimationEnd(Animator animation) {
+                animating = false;
+                if (CurrentPlayer == 1)
+                {
+                    int index = P1.indexOf(CurrentPiece);
+                    CurrentPiece.lx = Local.lx;
+                    CurrentPiece.ly = Local.ly;
+                    CurrentPiece.State = 2;
+                    P1.set(index,CurrentPiece);
+                    P1.remove(Cp);
+                }
+                else
+                {
+                    int index = P2.indexOf(CurrentPiece);
+                    CurrentPiece.lx = Local.lx;
+                    CurrentPiece.ly = Local.ly;
+                    CurrentPiece.State = 2;
+                    P2.set(index,CurrentPiece);
+                    P2.remove(Cp);
+                }
+                ChangePlayer();
+                super.onAnimationEnd(animation);
+            }
+        });
+        LaserAnim.start();
+    }
+
+    void MovePlayer(final Position Local)
+    {
+        if (CurrentPlayer == 1) {
+            //forOb
+            if (CurrentPiece.type == 3 && CurrentPiece.State == 2 && oblayer == 1) {
+                PlayerPieces A = new PlayerPieces(CurrentPiece.type, CurrentPiece.lx, CurrentPiece.ly, CurrentPiece.dir, 1);
+                P1.add(A);
+                CurrentPiece.State = 1;
+            }
+        }
+        else {
+            //forOb
+            if (CurrentPiece.type == 3 && CurrentPiece.State == 2 && oblayer == 1) {
+                PlayerPieces A = new PlayerPieces(CurrentPiece.type, CurrentPiece.lx, CurrentPiece.ly, CurrentPiece.dir, 1);
+                P2.add(A);
+                CurrentPiece.State = 1;
+            }
+        }
+        LaserAnim = ValueAnimator.ofInt(0,300);
+        LaserAnim.setDuration(300);
+        rotaoff = 0;
+        animating = true;
+        LaserAnim.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
+            @Override
+            public void onAnimationUpdate(ValueAnimator valueAnimator) {
+                xoff = (Local.grid.centerX() - Positions.get(CurrentPiece.lx).get(CurrentPiece.ly).grid.centerX()) * (int)valueAnimator.getAnimatedValue()/300;
+                yoff = (Local.grid.centerY() - Positions.get(CurrentPiece.lx).get(CurrentPiece.ly).grid.centerY()) * (int)valueAnimator.getAnimatedValue()/300;
+                Log.d("Hello",xoff + " " + yoff);
+                invalidate();
+            }
+        });
+        LaserAnim.addListener(new AnimatorListenerAdapter() {
+            @Override
+            public void onAnimationEnd(Animator animation) {
+                animating =false;
+                if (CurrentPlayer == 1)
+                {
+                    CurrentPiece.lx = Local.lx;
+                    CurrentPiece.ly = Local.ly;
+                }
+                else
+                {
+                    CurrentPiece.lx = Local.lx;
+                    CurrentPiece.ly = Local.ly;
+                }
+
+                ChangePlayer();
+                super.onAnimationEnd(animation);
+            }
+        });
+        LaserAnim.start();
+
+    }
+
+    void temp (Position Local)
     {
         if (CurrentPlayer == 1)
         {
@@ -376,34 +541,116 @@ public class KHETBoard extends View {
         ChangePlayer();
     }
 
+    int previndex;
+
+    void AnimateLaser()
+    {
+        if (previndex != Laser.size() - 1)
+        {
+            final int index = previndex + 1;
+            if (Laser.get(previndex).lx == Laser.get(index).lx)
+            {
+                LaserAnim = ValueAnimator.ofFloat(Positions.get(Laser.get(previndex).lx).get(Laser.get(previndex).ly).grid.centerY(),Positions.get(Laser.get(index).lx).get(Laser.get(index).ly).grid.centerY());
+                LaserAnim.setDuration(200);
+                LaserAnim.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
+                    @Override
+                    public void onAnimationUpdate(ValueAnimator valueAnimator) {
+                        LaserPath.lineTo(Positions.get(Laser.get(index).lx).get(Laser.get(index).ly).grid.centerX(),(float)valueAnimator.getAnimatedValue());
+                        invalidate();
+                    }
+                });
+
+                LaserAnim.addListener(new AnimatorListenerAdapter() {
+                    @Override
+                    public void onAnimationEnd(Animator animation) {
+                        previndex += 1;
+                        AnimateLaser();
+                        super.onAnimationEnd(animation);
+                    }
+                });
+
+                LaserAnim.start();
+            }
+            else
+            {
+                LaserAnim = ValueAnimator.ofFloat(Positions.get(Laser.get(previndex).lx).get(Laser.get(previndex).ly).grid.centerX(),Positions.get(Laser.get(index).lx).get(Laser.get(index).ly).grid.centerX());
+                LaserAnim.setDuration(200);
+                LaserAnim.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
+                    @Override
+                    public void onAnimationUpdate(ValueAnimator valueAnimator) {
+                        LaserPath.lineTo((float)valueAnimator.getAnimatedValue(),Positions.get(Laser.get(index).lx).get(Laser.get(index).ly).grid.centerY());
+                        invalidate();
+                    }
+                });
+
+                LaserAnim.addListener(new AnimatorListenerAdapter() {
+                    @Override
+                    public void onAnimationEnd(Animator animation) {
+                        previndex += 1;
+                        AnimateLaser();
+                        super.onAnimationEnd(animation);
+                    }
+                });
+
+                LaserAnim.start();
+            }
+        }
+        else
+        {
+            LaserAnim = null;
+
+            if (CaseAction == 4)
+            {
+                DestroyObject(Laser.get(Laser.size() - 1));
+            }
+
+            CurrentPlayer += 1;
+            if (CurrentPlayer > 2)
+            {
+                CurrentPlayer = 1;
+            }
+
+            History.add(new BoardData(P1,P2));
+            oblayer = 0;
+            CurrentPiece = null;
+            Selected = null;
+        }
+    }
+
     void ChangePlayer()
     {
         //Laser!!
         Laser = DrawImageLaser();
         LaserPath = new Path();
         LaserPath.moveTo(Positions.get(Laser.get(0).lx).get(Laser.get(0).ly).grid.centerX(),Positions.get(Laser.get(0).lx).get(Laser.get(0).ly).grid.centerY());
+        previndex = 0;
+        AnimateLaser();
 
-        for (int i = 1; i < Laser.size();i++)
-        {
-            LaserPath.lineTo(Positions.get(Laser.get(i).lx).get(Laser.get(i).ly).grid.centerX(),Positions.get(Laser.get(i).lx).get(Laser.get(i).ly).grid.centerY());
-        }
-
-        Log.d("Hello",CaseAction + " ");
-        if (CaseAction == 4)
-        {
-            DestroyObject(Laser.get(Laser.size() - 1));
-        }
-
-        CurrentPlayer += 1;
-        if (CurrentPlayer > 2)
-        {
-            CurrentPlayer = 1;
-        }
-
-        oblayer = 0;
-        CurrentPiece = null;
-        Selected = null;
         invalidate();
+    }
+
+    void Undo()
+    {
+        if (History.size() > 1 && LaserAnim == null)
+        {
+            Log.d("Hello",History.size() + "");
+            History.remove(History.size() - 1);
+            Log.d("Hello",History.size() + "");
+            P1 = History.get(History.size() - 1).getP1();
+            P2 = History.get(History.size() - 1).getP2();
+            LaserPath = new Path();
+
+            CurrentPlayer -= 1;
+            if (CurrentPlayer < 1)
+            {
+                CurrentPlayer = 2;
+            }
+
+            oblayer = 0;
+            CurrentPiece = null;
+            Selected = null;
+            invalidate();
+        }
     }
 
     void DestroyObject(PlayerPieces S)
@@ -419,7 +666,7 @@ public class KHETBoard extends View {
             if (P1.contains(S))
                 P1.set(P1.indexOf(S),S);
             else
-                P2.remove(S);
+                P2.set(P2.indexOf(S),S);
         }
     }
 
@@ -623,24 +870,20 @@ public class KHETBoard extends View {
 
     PlayerPieces isPiece(Position p)
     {
-        if (CurrentPlayer == 1)
+
+        for (int i = 0 ; i < P1.size(); i++)
         {
-            for (int i = 0 ; i < P1.size(); i++)
+            if (p.lx == P1.get(i).lx && p.ly == P1.get(i).ly)
             {
-                if (p.lx == P1.get(i).lx && p.ly == P1.get(i).ly)
-                {
-                    return P1.get(i);
-                }
+                return P1.get(i);
             }
         }
-        else
+
+        for (int i = 0 ; i < P2.size(); i++)
         {
-            for (int i = 0 ; i < P2.size(); i++)
+            if (p.lx == P2.get(i).lx && p.ly == P2.get(i).ly)
             {
-                if (p.lx == P2.get(i).lx && p.ly == P2.get(i).ly)
-                {
-                    return P2.get(i);
-                }
+                return P2.get(i);
             }
         }
 
@@ -648,6 +891,46 @@ public class KHETBoard extends View {
     }
 
 }
+
+class BoardData
+{
+    List<PlayerPieces> P1, P2;
+
+    public BoardData(List<PlayerPieces> p1, List<PlayerPieces> p2) {
+        P1 = new ArrayList<>();
+        P2 = new ArrayList<>();
+
+        for (int i = 0; i < p1.size(); i++)
+        {
+            P1.add(new PlayerPieces(p1.get(i).type,p1.get(i).lx,p1.get(i).ly,p1.get(i).dir,p1.get(i).State));
+        }
+        for (int i = 0; i < p2.size(); i++)
+        {
+            P2.add(new PlayerPieces(p2.get(i).type,p2.get(i).lx,p2.get(i).ly,p2.get(i).dir,p2.get(i).State));
+        }
+    }
+
+    List<PlayerPieces> getP1()
+    {
+        List<PlayerPieces> p = new ArrayList<>();
+        for (int i = 0; i < P1.size(); i++)
+        {
+            p.add(new PlayerPieces(P1.get(i).type,P1.get(i).lx,P1.get(i).ly,P1.get(i).dir,P1.get(i).State));
+        }
+        return p;
+    }
+
+    List<PlayerPieces> getP2()
+    {
+        List<PlayerPieces> p = new ArrayList<>();
+        for (int i = 0; i < P2.size(); i++)
+        {
+            p.add(new PlayerPieces(P2.get(i).type,P2.get(i).lx,P2.get(i).ly,P2.get(i).dir,P2.get(i).State));
+        }
+        return p;
+    }
+}
+
 
 class PlayerPieces
 {
