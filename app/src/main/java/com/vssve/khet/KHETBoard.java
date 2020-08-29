@@ -20,6 +20,7 @@ import android.util.AttributeSet;
 import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import java.util.ArrayList;
@@ -27,6 +28,8 @@ import java.util.List;
 import java.util.jar.Attributes;
 
 public class KHETBoard extends View {
+
+    TextView Message;
 
     int CurrentPlayer = 1;
 
@@ -273,6 +276,8 @@ public class KHETBoard extends View {
             switch (event.getAction())
             {
                 case MotionEvent.ACTION_DOWN:
+                    if (Message != null)
+                        Message.setText("Use Back Button For Undo");
                     MainActivity.M = MediaPlayer.create(getContext(),R.raw.click);
                     MainActivity.M.start();
                     Position Local = SearchPositions((int) event.getX(),(int) event.getY());
@@ -287,6 +292,8 @@ public class KHETBoard extends View {
                             if (Cp.type == 3 && Cp.State == 2)
                             {
                                 Toast.makeText(getContext(),"Move as " + (oblayer == 1 ? "Unstacked" : "Stacked")+ " Piece",Toast.LENGTH_SHORT).show();
+                                if (Message != null)
+                                    Message.setText("Move as " + (oblayer == 1 ? "Unstacked" : "Stacked")+ " Piece");
                             }
                         }
                         else
@@ -310,6 +317,8 @@ public class KHETBoard extends View {
                                 }
 
                                 Toast.makeText(getContext(),"Move as " + (oblayer == 1 ? "Unstacked" : "Stacked")+ " Piece",Toast.LENGTH_SHORT).show();
+                                if (Message != null)
+                                    Message.setText("Move as " + (oblayer == 1 ? "Unstacked" : "Stacked")+ " Piece");
                             }
                         }
                         else if (Cp != null && isCP(Cp))
@@ -326,6 +335,8 @@ public class KHETBoard extends View {
                                 if (Cp.type == 3 && Cp.State == 2)
                                 {
                                     Toast.makeText(getContext(),"Move as " + (oblayer == 1 ? "Unstacked" : "Stacked")+ " Piece",Toast.LENGTH_SHORT).show();
+                                    if (Message != null)
+                                        Message.setText("Move as " + (oblayer == 1 ? "Unstacked" : "Stacked")+ " Piece");
                                 }
                             }
                         }
@@ -569,10 +580,14 @@ public class KHETBoard extends View {
         {
             LaserAnim = null;
 
-            Log.d("Hello",CaseAction + "");
             if (CaseAction == 4)
             {
                 DestroyObject(Laser.get(Laser.size() - 1));
+            }
+            else
+            {
+                if (Message != null)
+                    Message.setText("Opps No Object is Destroyed");
             }
 
             CurrentPlayer += 1;
@@ -621,6 +636,11 @@ public class KHETBoard extends View {
             CurrentPiece = null;
             Selected = null;
             invalidate();
+        }
+        else
+        {
+            if (Message != null)
+                Message.setText("Cannot Undo Now");
         }
     }
 
