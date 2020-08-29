@@ -34,6 +34,8 @@ public class KHETBoard extends View {
 
     private int Thickness, CenterConstant;
 
+    public GameOverListener GL;
+
     ArrayList<BoardData> History;
 
     List<PlayerPieces> P1, P2;
@@ -116,13 +118,13 @@ public class KHETBoard extends View {
         {
             //Classic
             P1.add(new PlayerPieces(5,0,0,0,1));
-            P1.add(new PlayerPieces(4, 0,3,0,1));
+            P1.add(new PlayerPieces(4, 0,3,3,1));
             P1.add(new PlayerPieces( 4,0,4,0,1));
-            P1.add(new PlayerPieces(4, 2,1,0,1));
+            P1.add(new PlayerPieces(4, 2,1,1,1));
             P1.add(new PlayerPieces(4,6,5,0,1));
             P1.add(new PlayerPieces(4,7,0,0,1));
             P1.add(new PlayerPieces(4, 7,3,0,1));
-            P1.add(new PlayerPieces(4,7,4,0,1));
+            P1.add(new PlayerPieces(4,7,4,3,1));
             P1.add(new PlayerPieces(2,4,3,0,1));
             P1.add(new PlayerPieces(2,5, 3,0,1));
             P1.add(new PlayerPieces(3, 4,0,0,2));
@@ -275,7 +277,7 @@ public class KHETBoard extends View {
                     if (CurrentPiece == null && Local != null)
                     {
                         PlayerPieces Cp = isPiece(Local);
-                        if (Cp != null)
+                        if (Cp != null && isCP(Cp))
                         {
                             Selected = Local;
                             CurrentPiece = Cp;
@@ -506,41 +508,6 @@ public class KHETBoard extends View {
 
     }
 
-    void temp (Position Local)
-    {
-        if (CurrentPlayer == 1)
-        {
-            int index = P1.indexOf(CurrentPiece);
-            //forOb
-            if (CurrentPiece.type == 3 && CurrentPiece.State == 2 && oblayer == 1)
-            {
-                PlayerPieces A = new PlayerPieces(CurrentPiece.type,CurrentPiece.lx,CurrentPiece.ly,CurrentPiece.dir,1);
-                P1.add(A);
-                CurrentPiece.State = 1;
-            }
-            //Normal
-            CurrentPiece.lx = Local.lx;
-            CurrentPiece.ly = Local.ly;
-            P1.set(index,CurrentPiece);
-        }
-        else
-        {
-            int index = P2.indexOf(CurrentPiece);
-            //forOb
-            if (CurrentPiece.type == 3 && CurrentPiece.State == 2 && oblayer == 1)
-            {
-                PlayerPieces A = new PlayerPieces(CurrentPiece.type,CurrentPiece.lx,CurrentPiece.ly,CurrentPiece.dir,1);
-                P2.add(A);
-                CurrentPiece.State = 1;
-            }
-            //Normal
-            CurrentPiece.lx = Local.lx;
-            CurrentPiece.ly = Local.ly;
-            P2.set(index,CurrentPiece);
-        }
-        ChangePlayer();
-    }
-
     int previndex;
 
     void AnimateLaser()
@@ -599,6 +566,7 @@ public class KHETBoard extends View {
         {
             LaserAnim = null;
 
+            Log.d("Hello",CaseAction + "");
             if (CaseAction == 4)
             {
                 DestroyObject(Laser.get(Laser.size() - 1));
@@ -655,6 +623,18 @@ public class KHETBoard extends View {
 
     void DestroyObject(PlayerPieces S)
     {
+        if (S.type == 1)
+        {
+            if (CurrentPlayer == 1)
+            {
+                GL.OnGameOver(isCP(S)? 2:1);
+            }
+            else
+            {
+                GL.OnGameOver(isCP(S)? 1:2);
+            }
+        }
+
         if (!(S.type == 3 && S.State == 2))
             if (P1.contains(S))
                 P1.remove(S);
@@ -984,7 +964,21 @@ class PlayerPieces
         }
         else if (type == 1)
         {
-            return (dir % 2 == this.dir % 2)?5:6;
+            if (this.dir >0)
+            {
+                dir -= this.dir;
+                if (dir > 3)
+                {
+                    dir -= 4;
+                }
+
+                if (dir < 0)
+                {
+                    dir += 4;
+                }
+            }
+
+            return dir%2==0?4:5;
         }
         else if (type == 2)
         {
