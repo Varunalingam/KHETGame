@@ -74,6 +74,9 @@ public class KHETBoard extends View {
 
     Paint TextPaint;
 
+    boolean isAIPlaying, AIMoving;
+    int AIPlayerNumber;
+
 
     public KHETBoard(Context context, AttributeSet attr) {
         super(context,attr);
@@ -983,6 +986,167 @@ class BoardData
             p.add(new PlayerPieces(P2.get(i).type,P2.get(i).lx,P2.get(i).ly,P2.get(i).dir,P2.get(i).State));
         }
         return p;
+    }
+}
+
+class AI
+{
+    KHETBoard Board;
+    List<PlayerPieces> P1;
+    List<PlayerPieces> P2;
+    int AINumber;
+
+    public AI(KHETBoard board) {
+        Board = board;
+        List<PlayerPieces> p1 = board.P1;
+        List<PlayerPieces> p2 = board.P2;
+        P1 = new ArrayList<>();
+        P2 = new ArrayList<>();
+
+        for (int i = 0; i < p1.size(); i++)
+        {
+            P1.add(new PlayerPieces(p1.get(i).type,p1.get(i).lx,p1.get(i).ly,p1.get(i).dir,p1.get(i).State));
+        }
+        for (int i = 0; i < p2.size(); i++)
+        {
+            P2.add(new PlayerPieces(p2.get(i).type,p2.get(i).lx,p2.get(i).ly,p2.get(i).dir,p2.get(i).State));
+        }
+        AINumber = Board.AIPlayerNumber;
+
+
+    }
+
+
+
+    PlayerPieces NextPiece(Point cp, int dir)
+    {
+        PlayerPieces temp = null;
+        for (int i = 1 ; i < P1.size(); i++)
+        {
+            if (cp != new Point(P1.get(i).lx,P1.get(i).ly))
+                if (dir % 2 != 0 && P1.get(i).ly == cp.y)
+                {
+                    if (dir == 3 && P1.get(i).lx > cp.x)
+                    {
+                        if (temp != null)
+                        {
+                            if (temp.lx>P1.get(i).lx)
+                                temp = P1.get(i);
+                        }
+                        else
+                        {
+                            temp = P1.get(i);
+                        }
+                    }
+                    else if (dir == 1 && P1.get(i).lx < cp.x)
+                    {
+                        if (temp != null)
+                        {
+                            if (temp.lx < P1.get(i).lx)
+                                temp = P1.get(i);
+                        }
+                        else
+                        {
+                            temp = P1.get(i);
+                        }
+                    }
+                }
+                else if (dir % 2 == 0 && P1.get(i).lx == cp.x)
+                {
+                    if (dir == 0 && P1.get(i).ly > cp.y)
+                    {
+                        if (temp != null)
+                        {
+                            if (temp.ly>P1.get(i).ly)
+                                temp = P1.get(i);
+                        }
+                        else
+                        {
+                            temp = P1.get(i);
+                        }
+                    }
+                    else if (dir == 2 && P1.get(i).ly < cp.y)
+                    {
+                        if (temp != null)
+                        {
+                            if (temp.ly < P1.get(i).ly)
+                                temp = P1.get(i);
+                        }
+                        else
+                        {
+                            temp = P1.get(i);
+                        }
+                    }
+                }
+        }
+
+        for (int i = 1 ; i < P2.size(); i++)
+        {
+            if (cp != new Point(P2.get(i).lx,P2.get(i).ly))
+                if (dir % 2 != 0 && P2.get(i).ly == cp.y)
+                {
+                    if (dir == 3 && P2.get(i).lx > cp.x)
+                    {
+                        if (temp != null)
+                        {
+                            if (temp.lx>P2.get(i).lx)
+                                temp = P2.get(i);
+                        }
+                        else
+                        {
+                            temp = P2.get(i);
+                        }
+                    }
+                    else if (dir == 1 && P2.get(i).lx < cp.x)
+                    {
+                        if (temp != null)
+                        {
+                            if (temp.lx < P2.get(i).lx)
+                                temp = P2.get(i);
+                        }
+                        else
+                        {
+                            temp = P2.get(i);
+                        }
+                    }
+                }
+                else if (dir % 2 == 0 && P2.get(i).lx == cp.x)
+                {
+                    if (dir == 0 && P2.get(i).ly > cp.y)
+                    {
+                        if (temp != null)
+                        {
+                            if (temp.ly>P2.get(i).ly)
+                                temp = P2.get(i);
+                        }
+                        else
+                        {
+                            temp = P2.get(i);
+                        }
+                    }
+                    else if (dir == 2 && P2.get(i).ly < cp.y)
+                    {
+                        if (temp != null)
+                        {
+                            if (temp.ly < P2.get(i).ly)
+                                temp = P2.get(i);
+                        }
+                        else
+                        {
+                            temp = P2.get(i);
+                        }
+                    }
+                }
+        }
+        return temp;
+    }
+
+    boolean isAIPiece(PlayerPieces A)
+    {
+        if (AINumber == 1)
+            return P1.contains(A);
+        else
+            return P2.contains(A);
     }
 }
 
